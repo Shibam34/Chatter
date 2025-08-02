@@ -9,11 +9,12 @@ spring:
   application:
     name: Chatter
   kafka:
+    topic-name: chatter-topic
     bootstrap-servers: localhost:9092
-#    consumer:
-#      group-id: chatter-group
-#      auto-offset-reset: earliest
-#      enable-auto-commit: true
+    consumer:
+      group-id: chatter-group
+      auto-offset-reset: earliest
+      enable-auto-commit: true
     producer:
       retries: 3
 
