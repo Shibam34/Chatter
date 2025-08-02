@@ -4,6 +4,8 @@
     /opt/homebrew/opt/kafka/bin/kafka-server-start /opt/homebrew/etc/kafka/server.properties
 
 /opt/homebrew/bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic chatter-topic --from-beginning
+/opt/homebrew/bin/kafka-console-producer --bootstrap-server localhost:9092 --topic chatter-topic
+
 
 
 
