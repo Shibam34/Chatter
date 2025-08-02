@@ -36,3 +36,21 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# IntelliJ IDEA
+.idea/
+out/
+.settings/
+# Maven
+# Gradle
+.gradle/
+# Logs
+*.log
+# OS files
+Thumbs.db
+# Environment files
+.env
+# Test reports
+surefire-reports/
+# Others
+*.swp
