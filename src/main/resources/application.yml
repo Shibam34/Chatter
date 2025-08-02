@@ -1,0 +1,24 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+  servlet:
+    context-path: /api/chatter
+
+spring:
+  application:
+    name: Chatter
+  kafka:
+    bootstrap-servers: localhost:9092
+#    consumer:
+#      group-id: chatter-group
+#      auto-offset-reset: earliest
+#      enable-auto-commit: true
+    producer:
+      retries: 3
+
+
+logging:
+  level:
+    root: INFO
+    # org.springframework: DEBUG  # Uncomment for detailed Spring logs
