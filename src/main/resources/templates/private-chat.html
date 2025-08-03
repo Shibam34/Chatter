@@ -101,7 +101,7 @@
           display: flex;
           max-width: 80%;
           gap: 10px;
-          background: #e3f2fd; /* blue-ish for received */
+          background: #e3f2fd; /* default for received */
           border-radius: 12px;
           padding: 10px;
         }
@@ -147,26 +147,47 @@
           color: #888;
           margin-top: 2px;
         }
+
+        #connect-form {
+          display: block;
+        }
+
+        #chat {
+          display: none;
+        }
+
+        .quit-btn {
+          background-color: #d32f2f;
+          margin-top: 8px;
+        }
+
+        .quit-btn:hover {
+          background-color: #b71c1c;
+        }
     </style>
 </head>
 <body>
 
 <div class="chat-box">
-    <h2>Private Chat</h2>
+    <!-- Connect Form -->
+    <div id="connect-form">
+        <h2>Private Chat</h2>
+        <label for="username">Your Username:</label>
+        <input type="text" id="username" placeholder="e.g. alice" />
 
-    <label for="username">Your Username:</label>
-    <input type="text" id="username" placeholder="e.g. alice" />
+        <label for="receiver">Send To:</label>
+        <input type="text" id="receiver" placeholder="e.g. bob" />
 
-    <label for="receiver">Send To:</label>
-    <input type="text" id="receiver" placeholder="e.g. bob" />
+        <button id="connectBtn" onclick="connect()">Connect</button>
+    </div>
 
-    <button id="connectBtn" onclick="connect()">Connect</button>
-
-    <div id="chat" style="display: none;">
+    <!-- Chat Interface -->
+    <div id="chat">
         <div id="chat-messages"></div>
 
         <input type="text" id="message" placeholder="Type a message..." />
         <button id="sendBtn" onclick="sendPrivateMessage()">Send</button>
+        <button class="quit-btn" onclick="disconnect()">Quit</button>
     </div>
 </div>
 
@@ -215,14 +236,11 @@
 
       document.getElementById("connectBtn").disabled = true;
 
-      if (stompClient && stompClient.connected) {
-        stompClient.disconnect();
-      }
-
       const socket = new SockJS("/api/chatter/ws?username=" + encodeURIComponent(username));
       stompClient = Stomp.over(socket);
 
       stompClient.connect({}, () => {
+        document.getElementById("connect-form").style.display = "none";
         document.getElementById("chat").style.display = "block";
 
         stompClient.subscribe("/user/queue/messages", message => {
@@ -255,9 +273,21 @@
       document.getElementById("message").value = '';
     }
 
+    function disconnect() {
+      if (stompClient && stompClient.connected) {
+        stompClient.disconnect(() => {
+          stompClient = null;
+        });
+      }
+      document.getElementById("chat").style.display = "none";
+      document.getElementById("connect-form").style.display = "block";
+      document.getElementById("connectBtn").disabled = false;
+      document.getElementById("chat-messages").innerHTML = '';
+      document.getElementById("message").value = '';
+    }
+
     window.onload = function () {
-      const messageInput = document.getElementById("message");
-      messageInput.addEventListener("keydown", function (event) {
+      document.getElementById("message").addEventListener("keydown", function (event) {
         if (event.key === "Enter") {
           event.preventDefault();
           sendPrivateMessage();
