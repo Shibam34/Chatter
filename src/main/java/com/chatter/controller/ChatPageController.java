@@ -11,9 +11,9 @@ public class ChatPageController {
         return "chat"; // Thymeleaf will load chat.html
     }
 
-    @GetMapping("/chat1")
-    public String chat1() {
-        return "chat1";
+    @GetMapping("/private-chat")
+    public String directMessage() {
+        return "private-chat";
     }
 
     @GetMapping("/chat2")
