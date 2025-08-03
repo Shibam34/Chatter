@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Chat Client 2</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<h2>Chat Client 2</h2>
+<label>Username: <input type="text" id="username" /></label>
+<button onclick="connect()">Connect</button>
+
+<div id="chat" style="display:none;">
+    <div id="chat-messages" style="border:1px solid #ccc; padding:10px; height:200px; overflow:auto;"></div>
+    <input type="text" id="message" placeholder="Message" />
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        const username = document.getElementById("username").value;
+        if (!username) return;
+
+        const socket = new SockJS("/api/chatter/ws");
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, () => {
+            document.getElementById("chat").style.display = "block";
+
+            stompClient.subscribe("/topic/messages", message => {
+                console.log("Message received:", message.body);
+
+                const msg = JSON.parse(message.body);
+                const chatBox = document.getElementById("chat-messages");
+
+                const messageElement = document.createElement("div");
+                messageElement.innerHTML = `<strong>${msg.sender}</strong>: ${msg.content}`;
+                chatBox.appendChild(messageElement);
+            });
+
+            stompClient.send("/api/chatter/chat/addUser", {}, JSON.stringify({ sender: username }));
+        });
+    }
+
+
+    function sendMessage() {
+        const content = document.getElementById("message").value;
+        const sender = document.getElementById("username").value;
+
+        if (content && sender) {
+            stompClient.send("/api/chatter/chat/sendMessage", {}, JSON.stringify({
+                sender: sender,
+                content: content,
+                timestamp: new Date().toISOString()
+            }));
+            document.getElementById("message").value = '';
+        }
+    }
+</script>
+</body>
+</html>

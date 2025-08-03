@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat App</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<h2>Chat App</h2>
+
+<div>
+    <label>Username: <input type="text" id="username"/></label>
+    <button onclick="connect()">Connect</button>
+</div>
+
+<div id="chat" style="display:none;">
+    <div id="chat-messages"></div>
+    <input type="text" id="message" placeholder="Type message..."/>
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        const username = document.getElementById("username").value;
+        if (!username) return;
+
+        const socket = new SockJS('/api/chatter/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function () {
+            document.getElementById("chat").style.display = "block";
+
+            stompClient.subscribe("/topic/messages", function (message) {
+                console.log("Received message:", message.body);
+                const msg = JSON.parse(message.body);
+                const chat = document.getElementById("chat-messages");
+                chat.innerHTML += `<div><strong>${msg.sender}</strong>: ${msg.content}</div>`;
+            });
+
+            stompClient.send("/api/chatter/chat/addUser", {}, JSON.stringify({ sender: username }));
+        });
+    }
+
+    function sendMessage() {
+        const content = document.getElementById("message").value;
+        const username = document.getElementById("username").value;
+
+        if (content && stompClient) {
+            stompClient.send("/api/chatter/chat/sendMessage", {}, JSON.stringify({
+                sender: username,
+                content: content,
+                timestamp: new Date().toISOString()
+            }));
+            document.getElementById("message").value = '';
+        }
+    }
+</script>
+</body>
+</html>
