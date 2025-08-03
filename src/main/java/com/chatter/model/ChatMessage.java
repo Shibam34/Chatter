@@ -13,6 +13,9 @@ import java.time.LocalDateTime;
 @Builder
 public class ChatMessage {
     private String sender;
+    private String receiver; // NEW
     private String content;
     private LocalDateTime timestamp;
+
+
 }

@@ -1,63 +1,223 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
-    <title>Chat Client 1</title>
+    <meta charset="UTF-8">
+    <title>Private Chat Client</title>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body {
+          background: #f4f6f8;
+          font-family: 'Segoe UI', sans-serif;
+          display: flex;
+          justify-content: center;
+          padding: 40px;
+        }
+
+        .chat-box {
+          background: white;
+          width: 450px;
+          padding: 25px;
+          border-radius: 10px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+          text-align: center;
+          color: #1976d2;
+          margin-bottom: 25px;
+        }
+
+        label {
+          font-weight: 600;
+          margin-top: 10px;
+          display: block;
+        }
+
+        input[type="text"] {
+          width: 100%;
+          padding: 10px;
+          margin-top: 6px;
+          margin-bottom: 12px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          font-size: 14px;
+        }
+
+        button {
+          width: 100%;
+          padding: 10px;
+          margin-top: 8px;
+          border: none;
+          background-color: #1976d2;
+          color: white;
+          font-weight: bold;
+          font-size: 15px;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: background 0.2s ease-in-out;
+        }
+
+        button:hover {
+          background-color: #125ea6;
+        }
+
+        #chat {
+          margin-top: 20px;
+        }
+
+        #chat-messages {
+          background: #f9f9f9;
+          border: 1px solid #ddd;
+          padding: 10px;
+          height: 260px;
+          overflow-y: auto;
+          border-radius: 5px;
+          margin-bottom: 10px;
+          font-size: 14px;
+        }
+
+        .message {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+
+        .message.you {
+          background: #e8f5e9;
+          border-radius: 8px;
+          padding: 8px;
+        }
+
+        .avatar {
+          background: #1976d2;
+          color: white;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          flex-shrink: 0;
+        }
+
+        .content {
+          flex: 1;
+        }
+
+        .sender {
+          font-weight: bold;
+          color: #1976d2;
+        }
+
+        .timestamp {
+          font-size: 11px;
+          color: #888;
+          margin-top: 2px;
+        }
+    </style>
 </head>
 <body>
-<h2>Chat Client 1</h2>
-<label>Username: <input type="text" id="username" /></label>
-<button onclick="connect()">Connect</button>
 
-<div id="chat" style="display:none;">
-    <div id="chat-messages" style="border:1px solid #ccc; padding:10px; height:200px; overflow:auto;"></div>
-    <input type="text" id="message" placeholder="Message" />
-    <button onclick="sendMessage()">Send</button>
+<div class="chat-box">
+    <h2>Private Chat</h2>
+
+    <label for="username">Your Username:</label>
+    <input type="text" id="username" placeholder="e.g. alice" />
+
+    <label for="receiver">Send To (Receiver):</label>
+    <input type="text" id="receiver" placeholder="e.g. bob" />
+
+    <button onclick="connect()">Connect</button>
+
+    <div id="chat" style="display:none;">
+        <div id="chat-messages"></div>
+
+        <input type="text" id="message" placeholder="Type a message..." />
+        <button onclick="sendPrivateMessage()">Send</button>
+    </div>
 </div>
 
 <script>
     let stompClient = null;
+    let username = '';
+
+    function formatTime(dateStr) {
+      const date = new Date(dateStr);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function getInitials(name) {
+      return name.charAt(0).toUpperCase();
+    }
+
+    function addMessageToChat(msg, isSelf = false) {
+      const chatBox = document.getElementById("chat-messages");
+
+      const container = document.createElement("div");
+      container.className = `message ${isSelf ? 'you' : ''}`;
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.innerText = getInitials(msg.sender);
+
+      const content = document.createElement("div");
+      content.className = "content";
+      content.innerHTML = `
+        <div class="sender">${msg.sender}${isSelf ? ' (You)' : ''}</div>
+        <div>${msg.content}</div>
+        <div class="timestamp">${formatTime(msg.timestamp)}</div>
+      `;
+
+      container.appendChild(avatar);
+      container.appendChild(content);
+      chatBox.appendChild(container);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
     function connect() {
-        const username = document.getElementById("username").value;
-        if (!username) return;
+      username = document.getElementById("username").value.trim();
+      if (!username) return;
 
-        const socket = new SockJS("/api/chatter/ws");
-        stompClient = Stomp.over(socket);
+      if (stompClient && stompClient.connected) {
+        stompClient.disconnect();
+      }
 
-        stompClient.connect({}, () => {
-            document.getElementById("chat").style.display = "block";
+      const socket = new SockJS("/api/chatter/ws?username=" + encodeURIComponent(username));
+      stompClient = Stomp.over(socket);
 
-            stompClient.subscribe("/topic/messages", message => {
-                console.log("Message received:", message.body);
+      stompClient.connect({}, () => {
+        document.getElementById("chat").style.display = "block";
 
-                const msg = JSON.parse(message.body);
-                const chatBox = document.getElementById("chat-messages");
-
-                const messageElement = document.createElement("div");
-                messageElement.innerHTML = `<strong>${msg.sender}</strong>: ${msg.content}`;
-                chatBox.appendChild(messageElement);
-            });
-
-            stompClient.send("/api/chatter/chat/addUser", {}, JSON.stringify({ sender: username }));
+        stompClient.subscribe("/user/queue/messages", message => {
+          const msg = JSON.parse(message.body);
+          addMessageToChat(msg);
         });
+
+        stompClient.send("/api/chatter/chat/addUser", {}, JSON.stringify({ sender: username }));
+      });
     }
 
+    function sendPrivateMessage() {
+      const content = document.getElementById("message").value.trim();
+      const receiver = document.getElementById("receiver").value.trim();
+      if (!content || !receiver || !username) return;
 
-    function sendMessage() {
-        const content = document.getElementById("message").value;
-        const sender = document.getElementById("username").value;
+      const msg = {
+        sender: username,
+        receiver: receiver,
+        content: content,
+        timestamp: new Date()
+      };
 
-        if (content && sender) {
-            stompClient.send("/api/chatter/chat/sendMessage", {}, JSON.stringify({
-                sender: sender,
-                content: content,
-                timestamp: new Date().toISOString()
-            }));
-            document.getElementById("message").value = '';
-        }
+      addMessageToChat(msg, true);
+
+      stompClient.send("/api/chatter/chat/sendPrivateMessage", {}, JSON.stringify(msg));
+      document.getElementById("message").value = '';
     }
 </script>
+
 </body>
 </html>
