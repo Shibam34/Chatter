@@ -1,25 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Private Chat Client</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <style>
+        * {
+          box-sizing: border-box;
+        }
+
         body {
-          background: #f4f6f8;
+          background: #eef2f7;
           font-family: 'Segoe UI', sans-serif;
           display: flex;
           justify-content: center;
+          align-items: flex-start;
           padding: 40px;
+          margin: 0;
         }
 
         .chat-box {
           background: white;
-          width: 450px;
-          padding: 25px;
-          border-radius: 10px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+          width: 100%;
+          max-width: 480px;
+          padding: 30px;
+          border-radius: 16px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
         }
 
         h2 {
@@ -30,35 +38,44 @@
 
         label {
           font-weight: 600;
-          margin-top: 10px;
           display: block;
+          margin: 12px 0 6px;
         }
 
         input[type="text"] {
           width: 100%;
-          padding: 10px;
-          margin-top: 6px;
-          margin-bottom: 12px;
+          padding: 10px 12px;
           border: 1px solid #ccc;
-          border-radius: 5px;
-          font-size: 14px;
+          border-radius: 6px;
+          font-size: 15px;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+          border-color: #1976d2;
         }
 
         button {
           width: 100%;
-          padding: 10px;
-          margin-top: 8px;
-          border: none;
+          padding: 12px;
+          margin-top: 12px;
           background-color: #1976d2;
           color: white;
-          font-weight: bold;
+          font-weight: 600;
           font-size: 15px;
-          border-radius: 5px;
+          border: none;
+          border-radius: 6px;
           cursor: pointer;
-          transition: background 0.2s ease-in-out;
+          transition: background 0.2s ease;
         }
 
-        button:hover {
+        button:disabled {
+          background-color: #90caf9;
+          cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled) {
           background-color: #125ea6;
         }
 
@@ -69,23 +86,22 @@
         #chat-messages {
           background: #f9f9f9;
           border: 1px solid #ddd;
-          padding: 10px;
-          height: 260px;
+          padding: 12px;
+          height: 280px;
           overflow-y: auto;
-          border-radius: 5px;
+          border-radius: 6px;
           margin-bottom: 10px;
           font-size: 14px;
         }
 
         .message {
           display: flex;
-          align-items: flex-start;
           gap: 10px;
-          margin-bottom: 12px;
+          margin-bottom: 14px;
         }
 
         .message.you {
-          background: #e8f5e9;
+          background: #e3f2fd;
           border-radius: 8px;
           padding: 8px;
         }
@@ -117,6 +133,10 @@
           color: #888;
           margin-top: 2px;
         }
+
+        #message {
+          margin-top: 6px;
+        }
     </style>
 </head>
 <body>
@@ -127,16 +147,16 @@
     <label for="username">Your Username:</label>
     <input type="text" id="username" placeholder="e.g. alice" />
 
-    <label for="receiver">Send To (Receiver):</label>
+    <label for="receiver">Send To:</label>
     <input type="text" id="receiver" placeholder="e.g. bob" />
 
-    <button onclick="connect()">Connect</button>
+    <button id="connectBtn" onclick="connect()">Connect</button>
 
-    <div id="chat" style="display:none;">
+    <div id="chat" style="display: none;">
         <div id="chat-messages"></div>
 
         <input type="text" id="message" placeholder="Type a message..." />
-        <button onclick="sendPrivateMessage()">Send</button>
+        <button id="sendBtn" onclick="sendPrivateMessage()">Send</button>
     </div>
 </div>
 
@@ -179,7 +199,11 @@
 
     function connect() {
       username = document.getElementById("username").value.trim();
-      if (!username) return;
+      const receiver = document.getElementById("receiver").value.trim();
+
+      if (!username || !receiver) return;
+
+      document.getElementById("connectBtn").disabled = true;
 
       if (stompClient && stompClient.connected) {
         stompClient.disconnect();
@@ -197,12 +221,16 @@
         });
 
         stompClient.send("/api/chatter/chat/addUser", {}, JSON.stringify({ sender: username }));
+      }, () => {
+        alert("Failed to connect.");
+        document.getElementById("connectBtn").disabled = false;
       });
     }
 
     function sendPrivateMessage() {
       const content = document.getElementById("message").value.trim();
       const receiver = document.getElementById("receiver").value.trim();
+
       if (!content || !receiver || !username) return;
 
       const msg = {
@@ -213,19 +241,19 @@
       };
 
       addMessageToChat(msg, true);
-
       stompClient.send("/api/chatter/chat/sendPrivateMessage", {}, JSON.stringify(msg));
       document.getElementById("message").value = '';
     }
 
     window.onload = function () {
-    document.getElementById("message").addEventListener("keydown", function (event) {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        sendPrivateMessage();
-      }
-    });
-  };
+      const messageInput = document.getElementById("message");
+      messageInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          sendPrivateMessage();
+        }
+      });
+    };
 </script>
 
 </body>

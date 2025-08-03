@@ -42,7 +42,7 @@ public class NotificationController {
                 message
         );
 
-        // Notify sender that it was delivered
+        // Notify the sender that it was delivered
         messagingTemplate.convertAndSendToUser(
                 message.getSender(), "/queue/receipts",
                 "Message delivered to " + message.getReceiver()
